@@ -41,9 +41,9 @@ export function ChannelList({ channels, selectedChannelId, onSelectChannel }: Ch
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-purple-700">
+      <div className="p-3 sm:p-4 border-b border-purple-700">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Channels</h2>
+          <h2 className="text-base sm:text-lg font-semibold">Channels</h2>
           <button
             onClick={() => setShowCreateForm(true)}
             className="w-6 h-6 rounded bg-purple-600 hover:bg-purple-500 flex items-center justify-center text-sm font-bold transition-colors"
@@ -56,7 +56,7 @@ export function ChannelList({ channels, selectedChannelId, onSelectChannel }: Ch
 
       {/* Create Channel Form */}
       {showCreateForm && (
-        <div className="p-4 border-b border-purple-700 bg-purple-700">
+        <div className="p-3 sm:p-4 border-b border-purple-700 bg-purple-700">
           <form onSubmit={handleCreateChannel} className="space-y-2">
             <input
               type="text"
@@ -69,7 +69,7 @@ export function ChannelList({ channels, selectedChannelId, onSelectChannel }: Ch
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="px-3 py-1 text-sm bg-green-600 hover:bg-green-500 rounded transition-colors"
+                className="px-3 py-1 text-xs sm:text-sm bg-green-600 hover:bg-green-500 rounded transition-colors"
               >
                 Create
               </button>
@@ -79,7 +79,7 @@ export function ChannelList({ channels, selectedChannelId, onSelectChannel }: Ch
                   setShowCreateForm(false);
                   setNewChannelName("");
                 }}
-                className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 rounded transition-colors"
+                className="px-3 py-1 text-xs sm:text-sm bg-gray-600 hover:bg-gray-500 rounded transition-colors"
               >
                 Cancel
               </button>
@@ -97,16 +97,18 @@ export function ChannelList({ channels, selectedChannelId, onSelectChannel }: Ch
             <button
               key={channel._id}
               onClick={() => onSelectChannel(channel._id)}
-              className={`w-full text-left px-4 py-2 hover:bg-purple-700 transition-colors flex items-center justify-between ${
+              className={`w-full text-left px-3 sm:px-4 py-2 hover:bg-purple-700 transition-colors flex items-center justify-between ${
                 selectedChannelId === channel._id ? "bg-purple-600" : ""
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-gray-300">#</span> 
-                <span className={unreadCount > 0 ? "font-semibold" : ""}>{channel.name}</span>
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                <span className="text-gray-300 text-sm">#</span> 
+                <span className={`text-sm sm:text-base truncate ${unreadCount > 0 ? "font-semibold" : ""}`}>
+                  {channel.name}
+                </span>
               </div>
               {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 min-w-[18px] sm:min-w-[20px] text-center flex-shrink-0 ml-2">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}

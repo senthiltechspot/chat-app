@@ -78,15 +78,15 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Edit Profile</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Edit Profile</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 p-1"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -94,8 +94,8 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Avatar */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center gap-3 sm:gap-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
               {profile?.avatarUrl ? (
                 <img 
                   src={profile.avatarUrl} 
@@ -103,7 +103,7 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-2xl font-medium text-gray-600">
+                <span className="text-xl sm:text-2xl font-medium text-gray-600">
                   {name.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -120,7 +120,7 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
               >
                 {uploading ? "Uploading..." : "Change Avatar"}
               </button>
@@ -143,17 +143,17 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+              className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm sm:text-base font-medium"
             >
               Save Changes
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium"
             >
               Cancel
             </button>

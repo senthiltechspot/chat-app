@@ -11,7 +11,7 @@ export function SearchBar({ value, onChange, channelId }: SearchBarProps) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         type="text"
         value={value}
@@ -19,7 +19,7 @@ export function SearchBar({ value, onChange, channelId }: SearchBarProps) {
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         placeholder={channelId ? "Search in this channel..." : "Search all messages..."}
-        className="w-64 px-4 py-2 pl-10 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+        className="w-full px-4 py-2 pl-10 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-sm sm:text-base"
       />
       <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
         <svg

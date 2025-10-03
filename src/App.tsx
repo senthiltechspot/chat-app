@@ -12,15 +12,15 @@ export default function App() {
         <ChatApp />
       </Authenticated>
       <Unauthenticated>
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
-          <h2 className="text-xl font-semibold text-primary">SlackChat</h2>
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm h-14 sm:h-16 flex justify-between items-center border-b shadow-sm px-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-primary">SlackChat</h2>
         </header>
-        <main className="flex-1 flex items-center justify-center p-8">
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
           <div className="w-full max-w-md mx-auto">
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6 sm:gap-8">
               <div className="text-center">
-                <h1 className="text-5xl font-bold text-primary mb-4">SlackChat</h1>
-                <p className="text-xl text-secondary">Sign in to start chatting</p>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary mb-3 sm:mb-4">SlackChat</h1>
+                <p className="text-lg sm:text-xl text-secondary">Sign in to start chatting</p>
               </div>
               <SignInForm />
             </div>

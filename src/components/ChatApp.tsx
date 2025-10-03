@@ -13,6 +13,7 @@ export function ChatApp() {
   const [selectedChannelId, setSelectedChannelId] = useState<Id<"channels"> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfile, setShowProfile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const channels = useQuery(api.channels.list) || [];
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const markChannelAsRead = useMutation(api.readReceipts.markChannelAsRead);
@@ -45,46 +46,90 @@ export function ChatApp() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-gray-900">SlackChat</h1>
+      <header className="bg-white border-b border-gray-200 px-2 sm:px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">SlackChat</h1>
           {selectedChannel && (
-            <span className="text-lg font-medium text-gray-700">
+            <span className="hidden sm:inline text-lg font-medium text-gray-700">
               #{selectedChannel.name}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          <SearchBar 
-            value={searchQuery} 
-            onChange={setSearchQuery}
-            channelId={selectedChannelId}
-          />
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="hidden sm:block">
+            <SearchBar 
+              value={searchQuery} 
+              onChange={setSearchQuery}
+              channelId={selectedChannelId}
+            />
+          </div>
           <button
             onClick={() => setShowProfile(true)}
-            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
           >
-            Edit Profile
+            <span className="hidden sm:inline">Edit Profile</span>
+            <span className="sm:hidden">Profile</span>
           </button>
           <SignOutButton />
         </div>
       </header>
 
+      {/* Mobile Search Bar */}
+      <div className="sm:hidden px-2 py-2 bg-gray-50 border-b border-gray-200">
+        <SearchBar 
+          value={searchQuery} 
+          onChange={setSearchQuery}
+          channelId={selectedChannelId}
+        />
+      </div>
+
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Sidebar Overlay for Mobile */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
-        <div className="w-64 bg-purple-800 text-white flex flex-col">
+        <div className={`
+          fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto
+          w-64 bg-purple-800 text-white flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
           <ChannelList
             channels={channels}
             selectedChannelId={selectedChannelId}
-            onSelectChannel={setSelectedChannelId}
+            onSelectChannel={(channelId) => {
+              setSelectedChannelId(channelId);
+              setSidebarOpen(false); // Close sidebar on mobile when channel is selected
+            }}
           />
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {selectedChannelId ? (
             <>
+              {/* Mobile Channel Header */}
+              <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-2">
+                <h2 className="text-lg font-medium text-gray-900">
+                  #{selectedChannel?.name}
+                </h2>
+              </div>
+
               {/* Messages */}
               <div className="flex-1 overflow-y-auto">
                 <MessageList 
@@ -103,8 +148,8 @@ export function ChatApp() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500">
-              <p>Select a channel to start chatting</p>
+            <div className="flex-1 flex items-center justify-center text-gray-500 px-4">
+              <p className="text-center">Select a channel to start chatting</p>
             </div>
           )}
         </div>
