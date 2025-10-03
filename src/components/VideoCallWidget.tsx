@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
+import { useWebRTCManager } from '../hooks/useWebRTCManager';
 
 interface VideoCallWidgetProps {
   callId: string;
@@ -22,20 +23,15 @@ export function VideoCallWidget({
   onJoin,
   onLeave
 }: VideoCallWidgetProps) {
-  // Debug logging (removed for production)
-  // console.log('VideoCallWidget props:', { callId, channelId, channelName, isOpen });
   const [isJoined, setIsJoined] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideosRef = useRef<HTMLDivElement>(null);
-  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+
+  // Use WebRTC manager
+  const webrtcManager = useWebRTCManager();
 
   // Get call participants
   const participants = useQuery(api.calls.getCallParticipants, { callId }) || [];
@@ -51,13 +47,14 @@ export function VideoCallWidget({
     }
   }, [isOpen, currentUser, participants, isJoined]);
 
-  // Update video element when localStream changes
+  // Update local video element when WebRTC local stream changes
   useEffect(() => {
-    if (localStream && localVideoRef.current) {
-      localVideoRef.current.srcObject = localStream;
+    if (webrtcManager.localStream && localVideoRef.current) {
+      localVideoRef.current.srcObject = webrtcManager.localStream;
       localVideoRef.current.play().catch(console.error);
     }
-  }, [localStream]);
+  }, [webrtcManager.localStream]);
+
 
   // Call mutations
   const joinCallMutation = useMutation(api.calls.joinCall);
@@ -75,30 +72,6 @@ export function VideoCallWidget({
     return () => clearInterval(interval);
   }, [isJoined]);
 
-  // Initialize local media stream
-  const initializeLocalStream = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480 },
-        audio: true,
-      });
-      
-      setLocalStream(stream);
-      
-      // Set the video source with a small delay to ensure the ref is ready
-      setTimeout(() => {
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(console.error);
-        }
-      }, 100);
-      
-      return stream;
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-      throw error;
-    }
-  };
 
   // Handle joining the call
   const handleJoinCall = async () => {
@@ -112,23 +85,13 @@ export function VideoCallWidget({
         await joinCallMutation({ callId });
       }
       
-      // Initialize local stream
-      await initializeLocalStream();
+      // Start WebRTC call
+      await webrtcManager.startCall(callId, channelId);
       
       setIsJoined(true);
       onJoin();
     } catch (error) {
       console.error('Failed to join call:', error);
-      // If it's a "already in call" error, still proceed with local stream
-      if (error instanceof Error && error.message.includes('already in the call')) {
-        try {
-          await initializeLocalStream();
-          setIsJoined(true);
-          onJoin();
-        } catch (streamError) {
-          console.error('Failed to initialize local stream:', streamError);
-        }
-      }
     } finally {
       setIsConnecting(false);
     }
@@ -137,15 +100,8 @@ export function VideoCallWidget({
   // Handle leaving the call
   const handleLeaveCall = async () => {
     try {
-      // Stop local stream
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
-      }
-
-      // Close peer connections
-      peerConnectionsRef.current.forEach(pc => pc.close());
-      peerConnectionsRef.current.clear();
+      // Leave WebRTC call
+      webrtcManager.leaveCall();
 
       // Leave call in database
       await leaveCallMutation({ callId });
@@ -159,59 +115,19 @@ export function VideoCallWidget({
   };
 
   // Toggle mute
-  const toggleMute = async () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-        
-        // Update status in database
-        await updateStatusMutation({
-          callId,
-          isMuted: !audioTrack.enabled,
-        });
-      }
-    }
+  const toggleMute = () => {
+    webrtcManager.toggleMute();
   };
 
   // Toggle video
-  const toggleVideo = async () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
-        
-        // Update status in database
-        await updateStatusMutation({
-          callId,
-          isVideoOff: !videoTrack.enabled,
-        });
-      }
-    }
+  const toggleVideo = () => {
+    webrtcManager.toggleVideo();
   };
 
   // Start screen sharing
   const startScreenShare = async () => {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-      
-      if (localStream) {
-        const videoTrack = screenStream.getVideoTracks()[0];
-        if (videoTrack) {
-          // Replace video track in local stream
-          const sender = peerConnectionsRef.current.values().next().value?.getSenders().find(s => s.track?.kind === 'video');
-          if (sender) {
-            await sender.replaceTrack(videoTrack);
-          }
-        }
-        
-        setIsScreenSharing(true);
-      }
+      await webrtcManager.startScreenShare();
     } catch (error) {
       console.error('Error starting screen share:', error);
     }
@@ -220,20 +136,7 @@ export function VideoCallWidget({
   // Stop screen sharing
   const stopScreenShare = async () => {
     try {
-      if (localStream) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
-          audio: true,
-        });
-        
-        const videoTrack = stream.getVideoTracks()[0];
-        const sender = peerConnectionsRef.current.values().next().value?.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) {
-          await sender.replaceTrack(videoTrack);
-        }
-        
-        setIsScreenSharing(false);
-      }
+      await webrtcManager.stopScreenShare();
     } catch (error) {
       console.error('Error stopping screen share:', error);
     }
@@ -331,7 +234,7 @@ export function VideoCallWidget({
                     className="w-full h-full object-cover"
                     style={{ backgroundColor: '#1f2937' }}
                   />
-                  {!localStream && (
+                  {!webrtcManager.localStream && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
                       <div className="text-center text-white">
                         <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -344,34 +247,32 @@ export function VideoCallWidget({
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                    You {isMuted && '🔇'} {isVideoOff && '📹'}
+                    You
                   </div>
                 </div>
 
                 {/* Remote Videos */}
                 <div ref={remoteVideosRef} className="contents">
-                  {participants.map((participant) => (
-                    <div key={participant.userId} className="relative bg-gray-800 rounded-lg overflow-hidden">
-                      {participant.isVideoOff ? (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-semibold text-lg">
-                              {participant.userName.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
+                  {Array.from(webrtcManager.remoteStreams.entries()).map(([userId, stream]) => {
+                    const participant = participants.find(p => p.userId === userId);
+                    return (
+                      <div key={userId} className="relative bg-gray-800 rounded-lg overflow-hidden">
                         <video
                           autoPlay
                           playsInline
                           className="w-full h-full object-cover"
+                          ref={(videoElement) => {
+                            if (videoElement && stream) {
+                              videoElement.srcObject = stream;
+                            }
+                          }}
                         />
-                      )}
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        {participant.userName} {participant.isMuted && '🔇'} {participant.isVideoOff && '📹'}
+                        <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                          {participant?.userName || 'Unknown User'}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

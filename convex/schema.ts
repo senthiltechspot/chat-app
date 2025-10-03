@@ -56,6 +56,18 @@ const applicationTables = {
   })
     .index("by_call", ["callId"])
     .index("by_user", ["userId"]),
+
+  signaling: defineTable({
+    callId: v.string(),
+    fromUserId: v.id("users"),
+    targetUserId: v.optional(v.id("users")),
+    type: v.union(v.literal("offer"), v.literal("answer"), v.literal("ice-candidate")),
+    signal: v.string(),
+    timestamp: v.number(),
+  })
+    .index("by_call", ["callId"])
+    .index("by_from_user", ["fromUserId"])
+    .index("by_target_user", ["targetUserId"]),
 };
 
 export default defineSchema({

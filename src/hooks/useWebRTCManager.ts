@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 export interface WebRTCManager {
   isConnected: boolean;
   participants: Map<string, RTCPeerConnection>;
   localStream: MediaStream | null;
+  remoteStreams: Map<string, MediaStream>;
   startCall: (callId: string, channelId: Id<"channels">) => Promise<void>;
   joinCall: (callId: string) => Promise<void>;
   leaveCall: () => void;
@@ -25,6 +26,7 @@ export function useWebRTCManager(): WebRTCManager {
   const [isConnected, setIsConnected] = useState(false);
   const [participants, setParticipants] = useState<Map<string, RTCPeerConnection>>(new Map());
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideosRef = useRef<HTMLDivElement>(null);
@@ -33,6 +35,46 @@ export function useWebRTCManager(): WebRTCManager {
   const currentCallIdRef = useRef<string | null>(null);
 
   const sendSignal = useMutation(api.signaling.sendSignal);
+  const currentUser = useQuery(api.auth.loggedInUser);
+
+  // Create offer for peer connection
+  const createOffer = useCallback(async (): Promise<RTCSessionDescriptionInit> => {
+    const peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    
+    // Add local stream tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    // Handle remote stream
+    peerConnection.ontrack = (event) => {
+      if (event.streams[0]) {
+        setRemoteStreams((prev: Map<string, MediaStream>) => {
+          const newStreams = new Map(prev);
+          newStreams.set('remote', event.streams[0]);
+          return newStreams;
+        });
+      }
+    };
+
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate && currentCallIdRef.current) {
+        sendSignal({
+          callId: currentCallIdRef.current,
+          signal: JSON.stringify(event.candidate),
+          type: 'ice-candidate',
+        });
+      }
+    };
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    
+    return offer;
+  }, [sendSignal]);
 
   // Create peer connection
   const createPeerConnection = useCallback((userId: string): RTCPeerConnection => {
@@ -140,14 +182,21 @@ export function useWebRTCManager(): WebRTCManager {
       currentCallIdRef.current = callId;
       setIsConnected(true);
 
-      // In a real app, you would notify other users about the new call
-      // and they would join automatically or get notifications
+      // Create offer and send to all participants
+      if (currentUser) {
+        const offer = await createOffer();
+        await sendSignal({
+          callId,
+          signal: JSON.stringify(offer),
+          type: 'offer',
+        });
+      }
 
     } catch (error) {
       console.error('Error starting call:', error);
       throw error;
     }
-  }, []);
+  }, [currentUser, sendSignal]);
 
   // Join an existing call
   const joinCall = useCallback(async (callId: string) => {
@@ -283,6 +332,7 @@ export function useWebRTCManager(): WebRTCManager {
     isConnected,
     participants,
     localStream,
+    remoteStreams,
     startCall,
     joinCall,
     leaveCall,
