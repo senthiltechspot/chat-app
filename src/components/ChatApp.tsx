@@ -41,11 +41,11 @@ export function ChatApp() {
   );
   const currentUser = useQuery(api.auth.loggedInUser);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Active call data:', activeCall);
-    console.log('Selected channel ID:', selectedChannelId);
-  }, [activeCall, selectedChannelId]);
+  // Debug logging (removed for production)
+  // useEffect(() => {
+  //   console.log('Active call data:', activeCall);
+  //   console.log('Selected channel ID:', selectedChannelId);
+  // }, [activeCall, selectedChannelId]);
   
   // Call mutations
   const joinCallMutation = useMutation(api.calls.joinCall);
@@ -107,79 +107,94 @@ export function ChatApp() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-2 sm:px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <h1 className="text-lg sm:text-xl font-bold text-gray-900">SlackChat</h1>
-          {selectedChannel && (
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-lg font-medium text-gray-700">
-                #{selectedChannel.name}
-              </span>
-              {activeCall && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="font-medium">
-                    {isInCall ? 'In Call' : 'Call Active'}
-                  </span>
+      <header className="bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg">
+        <div className="px-2 sm:px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 rounded-md hover:bg-white hover:bg-opacity-20 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            {/* Logo and App Name */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                </svg>
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold">SlackChat</h1>
+            </div>
+            
+            {/* Channel Info */}
+            {selectedChannel && (
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="w-px h-6 bg-white bg-opacity-30"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-purple-100">#</span>
+                  <span className="text-lg font-medium">{selectedChannel.name}</span>
+                  {activeCall && (
+                    <div className="flex items-center gap-1 px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm">
+                      <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                      <span className="font-medium">
+                        {isInCall ? 'In Call' : 'Call Active'}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden sm:block">
-            <SearchBar 
-              value={searchQuery} 
-              onChange={setSearchQuery}
-              channelId={selectedChannelId}
-            />
+              </div>
+            )}
           </div>
-          {selectedChannelId && (
-            <div className="hidden sm:flex gap-2">
-              {activeCall && !isInCall && (
-                <button
-                  onClick={handleJoinCall}
-                  className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  Join Call
-                </button>
-              )}
-              <CallButton 
+          
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Search Bar - Desktop */}
+            <div className="hidden sm:block">
+              <SearchBar 
+                value={searchQuery} 
+                onChange={setSearchQuery}
                 channelId={selectedChannelId}
-                channelName={selectedChannel?.name || ""}
-                className=""
               />
-              <CallTestButton 
-                channelId={selectedChannelId}
-                channelName={selectedChannel?.name || ""}
-              />
-              <VideoWidgetTest 
-                channelId={selectedChannelId}
-                channelName={selectedChannel?.name || ""}
-              />
-              <VideoTest />
             </div>
-          )}
-          <button
-            onClick={() => setShowProfile(true)}
-            className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            <span className="hidden sm:inline">Edit Profile</span>
-            <span className="sm:hidden">Profile</span>
-          </button>
-          <SignOutButton />
+            
+            {/* Call Actions */}
+            {selectedChannelId && (
+              <div className="hidden sm:flex gap-2">
+                {activeCall && !isInCall && (
+                  <button
+                    onClick={handleJoinCall}
+                    className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Join Call
+                  </button>
+                )}
+                <CallButton 
+                  channelId={selectedChannelId}
+                  channelName={selectedChannel?.name || ""}
+                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border-opacity-30"
+                />
+              </div>
+            )}
+            
+            {/* Profile Button */}
+            <button
+              onClick={() => setShowProfile(true)}
+              className="px-3 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors font-medium"
+            >
+              <span className="hidden sm:inline">Edit Profile</span>
+              <span className="sm:hidden">Profile</span>
+            </button>
+            
+            {/* Sign Out */}
+            <SignOutButton />
+          </div>
         </div>
       </header>
 

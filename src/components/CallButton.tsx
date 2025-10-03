@@ -25,7 +25,6 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
     setIsCreating(true);
     try {
       const callId = `call_${channelId}_${Date.now()}`;
-      console.log('Creating call with ID:', callId, 'Type:', type);
       
       await createCall({
         channelId,
@@ -36,13 +35,9 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
       setCallType(type);
       setCreatedCallId(callId);
       
-      console.log('Call created successfully, showing widget for type:', type);
-      
       if (type === 'video') {
-        console.log('Setting showVideoWidget to true');
         setShowVideoWidget(true);
       } else {
-        console.log('Setting showCallModal to true');
         setShowCallModal(true);
       }
       
@@ -59,14 +54,14 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
     return `call_${channelId}_${Date.now()}`;
   };
 
-  // Debug logging
-  console.log('CallButton state:', { 
-    showCallModal, 
-    showVideoWidget, 
-    callType, 
-    isCreating, 
-    createdCallId 
-  });
+  // Debug logging (removed for production)
+  // console.log('CallButton state:', { 
+  //   showCallModal, 
+  //   showVideoWidget, 
+  //   callType, 
+  //   isCreating, 
+  //   createdCallId 
+  // });
 
   return (
     <>
@@ -126,16 +121,13 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
           channelName={channelName}
           isOpen={showVideoWidget}
           onClose={() => {
-            console.log('Closing video widget');
             setShowVideoWidget(false);
             setCreatedCallId(null);
           }}
           onJoin={() => {
-            console.log('Joining call from widget');
             // Handle join logic if needed
           }}
           onLeave={() => {
-            console.log('Leaving call from widget');
             setShowVideoWidget(false);
             setCreatedCallId(null);
           }}

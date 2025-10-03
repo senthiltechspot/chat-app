@@ -11,7 +11,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Authenticated>
         <ChatApp />
-        <WebRTCDemo />
+        {/* <WebRTCDemo /> */}
       </Authenticated>
       <Unauthenticated>
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm h-14 sm:h-16 flex justify-between items-center border-b shadow-sm px-4">

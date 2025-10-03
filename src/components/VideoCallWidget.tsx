@@ -22,7 +22,8 @@ export function VideoCallWidget({
   onJoin,
   onLeave
 }: VideoCallWidgetProps) {
-  console.log('VideoCallWidget props:', { callId, channelId, channelName, isOpen });
+  // Debug logging (removed for production)
+  // console.log('VideoCallWidget props:', { callId, channelId, channelName, isOpen });
   const [isJoined, setIsJoined] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -45,7 +46,6 @@ export function VideoCallWidget({
     if (isOpen && currentUser && participants.length > 0) {
       const isAlreadyParticipant = participants.some(p => p.userId === currentUser._id);
       if (isAlreadyParticipant && !isJoined) {
-        console.log('User is already a participant, auto-joining...');
         handleJoinCall();
       }
     }
@@ -54,7 +54,6 @@ export function VideoCallWidget({
   // Update video element when localStream changes
   useEffect(() => {
     if (localStream && localVideoRef.current) {
-      console.log('Updating video element with stream');
       localVideoRef.current.srcObject = localStream;
       localVideoRef.current.play().catch(console.error);
     }
@@ -79,23 +78,18 @@ export function VideoCallWidget({
   // Initialize local media stream
   const initializeLocalStream = async () => {
     try {
-      console.log('Requesting media devices...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480 },
         audio: true,
       });
       
-      console.log('Media stream obtained:', stream);
       setLocalStream(stream);
       
       // Set the video source with a small delay to ensure the ref is ready
       setTimeout(() => {
         if (localVideoRef.current) {
-          console.log('Setting video source to element');
           localVideoRef.current.srcObject = stream;
           localVideoRef.current.play().catch(console.error);
-        } else {
-          console.error('Video ref is not available');
         }
       }, 100);
       
@@ -320,21 +314,6 @@ export function VideoCallWidget({
                   )}
                 </button>
                 
-                {/* Debug button for testing video */}
-                <button
-                  onClick={async () => {
-                    console.log('Manual video test...');
-                    try {
-                      await initializeLocalStream();
-                      setIsJoined(true);
-                    } catch (error) {
-                      console.error('Manual video test failed:', error);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  Test Video (Debug)
-                </button>
               </div>
             </div>
           ) : (
@@ -351,10 +330,6 @@ export function VideoCallWidget({
                     playsInline
                     className="w-full h-full object-cover"
                     style={{ backgroundColor: '#1f2937' }}
-                    onLoadedMetadata={() => console.log('Video metadata loaded')}
-                    onCanPlay={() => console.log('Video can play')}
-                    onError={(e) => console.error('Video error:', e)}
-                    onLoadStart={() => console.log('Video load started')}
                   />
                   {!localStream && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
