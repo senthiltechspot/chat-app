@@ -26,6 +26,9 @@ export function VideoCallWidget({
   const [isJoined, setIsJoined] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideosRef = useRef<HTMLDivElement>(null);
@@ -106,8 +109,12 @@ export function VideoCallWidget({
       // Leave call in database
       await leaveCallMutation({ callId });
       
+      // Reset state
       setIsJoined(false);
       setCallDuration(0);
+      setIsMuted(false);
+      setIsVideoOff(false);
+      setIsScreenSharing(false);
       onLeave();
     } catch (error) {
       console.error('Failed to leave call:', error);
@@ -117,17 +124,20 @@ export function VideoCallWidget({
   // Toggle mute
   const toggleMute = () => {
     webrtcManager.toggleMute();
+    setIsMuted(!isMuted);
   };
 
   // Toggle video
   const toggleVideo = () => {
     webrtcManager.toggleVideo();
+    setIsVideoOff(!isVideoOff);
   };
 
   // Start screen sharing
   const startScreenShare = async () => {
     try {
       await webrtcManager.startScreenShare();
+      setIsScreenSharing(true);
     } catch (error) {
       console.error('Error starting screen share:', error);
     }
@@ -137,6 +147,7 @@ export function VideoCallWidget({
   const stopScreenShare = async () => {
     try {
       await webrtcManager.stopScreenShare();
+      setIsScreenSharing(false);
     } catch (error) {
       console.error('Error stopping screen share:', error);
     }
@@ -247,7 +258,7 @@ export function VideoCallWidget({
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                    You
+                    You {isMuted && '🔇'} {isVideoOff && '📹'}
                   </div>
                 </div>
 
