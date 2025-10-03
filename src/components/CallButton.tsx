@@ -26,14 +26,14 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
     try {
       const callId = `call_${channelId}_${Date.now()}`;
       
-      await createCall({
+      const result = await createCall({
         channelId,
         callId,
         callType: type,
       });
       
       setCallType(type);
-      setCreatedCallId(callId);
+      setCreatedCallId(result.callId);
       
       if (type === 'video') {
         setShowVideoWidget(true);
@@ -41,7 +41,11 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
         setShowCallModal(true);
       }
       
-      toast.success(`${type === 'video' ? 'Video' : 'Audio'} call started!`);
+      if (result.joinedExisting) {
+        toast.success(`Joined existing ${type === 'video' ? 'video' : 'audio'} call!`);
+      } else {
+        toast.success(`${type === 'video' ? 'Video' : 'Audio'} call created!`);
+      }
     } catch (error) {
       console.error('Failed to start call:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to start call');

@@ -10,7 +10,10 @@ export const createCall = mutation({
     callId: v.string(),
     callType: v.union(v.literal("video"), v.literal("audio")),
   },
-  returns: v.id("calls"),
+  returns: v.object({
+    callId: v.string(),
+    joinedExisting: v.optional(v.boolean()),
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -30,7 +33,25 @@ export const createCall = mutation({
       .first();
 
     if (existingCall) {
-      throw new Error("There's already an active call in this channel");
+      // If there's already an active call, join it instead of creating a new one
+      const existingParticipant = await ctx.db
+        .query("callParticipants")
+        .withIndex("by_call", (q) => q.eq("callId", existingCall.callId))
+        .filter((q) => q.eq(q.field("userId"), user._id))
+        .first();
+
+      if (!existingParticipant || existingParticipant.leftAt) {
+        // Add user as participant if not already in the call
+        await ctx.db.insert("callParticipants", {
+          callId: existingCall.callId,
+          userId: user._id,
+          joinedAt: Date.now(),
+          isMuted: false,
+          isVideoOff: args.callType === "audio",
+        });
+      }
+
+      return { callId: existingCall.callId, joinedExisting: true };
     }
 
     const callId = await ctx.db.insert("calls", {
@@ -51,7 +72,7 @@ export const createCall = mutation({
       isVideoOff: args.callType === "audio",
     });
 
-    return callId;
+    return { callId: args.callId, joinedExisting: false };
   },
 });
 
