@@ -9,6 +9,11 @@ import { SearchBar } from "./SearchBar";
 import { ProfileModal } from "./ProfileModal";
 import { CallButton } from "./CallButton";
 import { CallNotification } from "./CallNotification";
+import { CallTestButton } from "./CallTestButton";
+import { CallBanner } from "./CallBanner";
+import { VideoCallWidget } from "./VideoCallWidget";
+import { VideoWidgetTest } from "./VideoWidgetTest";
+import { VideoTest } from "./VideoTest";
 import { SignOutButton } from "../SignOutButton";
 
 export function ChatApp() {
@@ -22,6 +27,9 @@ export function ChatApp() {
     channelName: string;
     callerName: string;
   } | null>(null);
+  const [isInCall, setIsInCall] = useState(false);
+  const [currentCallId, setCurrentCallId] = useState<string | null>(null);
+  const [showVideoWidget, setShowVideoWidget] = useState(false);
   const channels = useQuery(api.channels.list) || [];
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const markChannelAsRead = useMutation(api.readReceipts.markChannelAsRead);
@@ -32,6 +40,44 @@ export function ChatApp() {
     selectedChannelId ? { channelId: selectedChannelId } : "skip"
   );
   const currentUser = useQuery(api.auth.loggedInUser);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Active call data:', activeCall);
+    console.log('Selected channel ID:', selectedChannelId);
+  }, [activeCall, selectedChannelId]);
+  
+  // Call mutations
+  const joinCallMutation = useMutation(api.calls.joinCall);
+  const leaveCallMutation = useMutation(api.calls.leaveCall);
+
+  // Handle joining an active call
+  const handleJoinCall = async () => {
+    if (!activeCall) return;
+    
+    try {
+      await joinCallMutation({ callId: activeCall.callId });
+      setIsInCall(true);
+      setCurrentCallId(activeCall.callId);
+      setShowVideoWidget(true);
+    } catch (error) {
+      console.error('Failed to join call:', error);
+    }
+  };
+
+  // Handle leaving a call
+  const handleLeaveCall = async () => {
+    if (!currentCallId) return;
+    
+    try {
+      await leaveCallMutation({ callId: currentCallId });
+      setIsInCall(false);
+      setCurrentCallId(null);
+      setShowVideoWidget(false);
+    } catch (error) {
+      console.error('Failed to leave call:', error);
+    }
+  };
 
   // Auto-select first channel
   useEffect(() => {
@@ -74,9 +120,19 @@ export function ChatApp() {
           </button>
           <h1 className="text-lg sm:text-xl font-bold text-gray-900">SlackChat</h1>
           {selectedChannel && (
-            <span className="hidden sm:inline text-lg font-medium text-gray-700">
-              #{selectedChannel.name}
-            </span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-lg font-medium text-gray-700">
+                #{selectedChannel.name}
+              </span>
+              {activeCall && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="font-medium">
+                    {isInCall ? 'In Call' : 'Call Active'}
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
@@ -88,11 +144,33 @@ export function ChatApp() {
             />
           </div>
           {selectedChannelId && (
-            <CallButton 
-              channelId={selectedChannelId}
-              channelName={selectedChannel?.name || ""}
-              className="hidden sm:flex"
-            />
+            <div className="hidden sm:flex gap-2">
+              {activeCall && !isInCall && (
+                <button
+                  onClick={handleJoinCall}
+                  className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Join Call
+                </button>
+              )}
+              <CallButton 
+                channelId={selectedChannelId}
+                channelName={selectedChannel?.name || ""}
+                className=""
+              />
+              <CallTestButton 
+                channelId={selectedChannelId}
+                channelName={selectedChannel?.name || ""}
+              />
+              <VideoWidgetTest 
+                channelId={selectedChannelId}
+                channelName={selectedChannel?.name || ""}
+              />
+              <VideoTest />
+            </div>
           )}
           <button
             onClick={() => setShowProfile(true)}
@@ -116,11 +194,24 @@ export function ChatApp() {
             />
           </div>
           {selectedChannelId && (
-            <CallButton 
-              channelId={selectedChannelId}
-              channelName={selectedChannel?.name || ""}
-              className="flex-shrink-0"
-            />
+            <div className="flex gap-2 flex-shrink-0">
+              {activeCall && !isInCall && (
+                <button
+                  onClick={handleJoinCall}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Join
+                </button>
+              )}
+              <CallButton 
+                channelId={selectedChannelId}
+                channelName={selectedChannel?.name || ""}
+                className=""
+              />
+            </div>
           )}
         </div>
       </div>
@@ -158,16 +249,43 @@ export function ChatApp() {
             <>
               {/* Mobile Channel Header */}
               <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-2">
-                <h2 className="text-lg font-medium text-gray-900">
-                  #{selectedChannel?.name}
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-medium text-gray-900">
+                    #{selectedChannel?.name}
+                  </h2>
+                  {activeCall && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="font-medium">
+                        {isInCall ? 'In Call' : 'Call Active'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Call Banner */}
+              {activeCall && (
+                <CallBanner
+                  callId={activeCall.callId}
+                  channelName={selectedChannel?.name || ""}
+                  participantCount={activeCall.participantCount}
+                  isInCall={isInCall}
+                  onJoin={handleJoinCall}
+                  onLeave={handleLeaveCall}
+                  callType={activeCall.callType}
+                />
+              )}
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto">
                 <MessageList 
                   channelId={selectedChannelId}
                   searchQuery={searchQuery}
+                  activeCall={activeCall}
+                  isInCall={isInCall}
+                  onJoinCall={handleJoinCall}
+                  onLeaveCall={handleLeaveCall}
                 />
                 <div ref={messagesEndRef} />
               </div>
@@ -218,15 +336,42 @@ export function ChatApp() {
           <span className="text-sm font-medium">
             Call active in #{selectedChannel?.name} ({activeCall.participantCount} participants)
           </span>
-          <button
-            onClick={() => {
-              // Handle joining active call
-            }}
-            className="ml-2 px-2 py-1 bg-green-700 hover:bg-green-800 rounded text-xs transition-colors"
-          >
-            Join
-          </button>
+          {isInCall ? (
+            <button
+              onClick={handleLeaveCall}
+              className="ml-2 px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors"
+            >
+              Leave
+            </button>
+          ) : (
+            <button
+              onClick={handleJoinCall}
+              className="ml-2 px-2 py-1 bg-green-700 hover:bg-green-800 rounded text-xs transition-colors"
+            >
+              Join
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Video Call Widget */}
+      {showVideoWidget && activeCall && (
+        <VideoCallWidget
+          callId={activeCall.callId}
+          channelId={selectedChannelId!}
+          channelName={selectedChannel?.name || ""}
+          isOpen={showVideoWidget}
+          onClose={() => setShowVideoWidget(false)}
+          onJoin={() => {
+            setIsInCall(true);
+            setCurrentCallId(activeCall.callId);
+          }}
+          onLeave={() => {
+            setIsInCall(false);
+            setCurrentCallId(null);
+            setShowVideoWidget(false);
+          }}
+        />
       )}
     </div>
   );

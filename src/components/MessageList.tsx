@@ -1,13 +1,33 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { CallMessage } from "./CallMessage";
+import { CallAlert } from "./CallAlert";
 
 interface MessageListProps {
   channelId: Id<"channels">;
   searchQuery: string;
+  activeCall?: {
+    callId: string;
+    callType: 'video' | 'audio';
+    participantCount: number;
+    createdBy: Id<"users">;
+    creatorName: string;
+    startedAt: number;
+  } | null;
+  isInCall?: boolean;
+  onJoinCall?: () => void;
+  onLeaveCall?: () => void;
 }
 
-export function MessageList({ channelId, searchQuery }: MessageListProps) {
+export function MessageList({ 
+  channelId, 
+  searchQuery, 
+  activeCall, 
+  isInCall = false, 
+  onJoinCall, 
+  onLeaveCall 
+}: MessageListProps) {
   const messages = useQuery(api.messages.list, { channelId }) || [];
   const searchResults = useQuery(
     api.messages.search, 
@@ -33,6 +53,33 @@ export function MessageList({ channelId, searchQuery }: MessageListProps) {
 
   return (
     <div className="p-2 sm:p-4 space-y-3 sm:space-y-4">
+      {/* Call Alert */}
+      {activeCall && !searchQuery.trim() && (
+        <CallAlert
+          callType={activeCall.callType}
+          participantCount={activeCall.participantCount}
+          isInCall={isInCall}
+          onJoin={onJoinCall || (() => {})}
+          onDismiss={() => {}} // You can add dismiss functionality later
+          callId={activeCall.callId}
+        />
+      )}
+      
+      {/* Call Message */}
+      {activeCall && !searchQuery.trim() && (
+        <CallMessage
+          callId={activeCall.callId}
+          channelName=""
+          participantCount={activeCall.participantCount}
+          isInCall={isInCall}
+          onJoin={onJoinCall || (() => {})}
+          onLeave={onLeaveCall || (() => {})}
+          callType={activeCall.callType}
+          creatorName={activeCall.creatorName}
+          startedAt={activeCall.startedAt}
+        />
+      )}
+      
       {displayMessages.map((message, index) => {
         const isCurrentUser = currentUser?._id === message.authorId;
         const isUnread = !searchQuery.trim() && unreadCount > 0 && index >= displayMessages.length - unreadCount;

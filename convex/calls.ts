@@ -37,7 +37,7 @@ export const createCall = mutation({
       channelId: args.channelId,
       createdBy: user._id,
       callId: args.callId,
-      status: "waiting",
+      status: "active", // Set to active immediately when created
       callType: args.callType,
       startedAt: Date.now(),
     });

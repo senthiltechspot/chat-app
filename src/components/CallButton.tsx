@@ -3,6 +3,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import { CallModal } from './CallModal';
+import { VideoCallWidget } from './VideoCallWidget';
 import { toast } from 'sonner';
 
 interface CallButtonProps {
@@ -13,8 +14,10 @@ interface CallButtonProps {
 
 export function CallButton({ channelId, channelName, className = "" }: CallButtonProps) {
   const [showCallModal, setShowCallModal] = useState(false);
+  const [showVideoWidget, setShowVideoWidget] = useState(false);
   const [callType, setCallType] = useState<'video' | 'audio'>('video');
   const [isCreating, setIsCreating] = useState(false);
+  const [createdCallId, setCreatedCallId] = useState<string | null>(null);
   
   const createCall = useMutation(api.calls.createCall);
 
@@ -22,13 +25,27 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
     setIsCreating(true);
     try {
       const callId = `call_${channelId}_${Date.now()}`;
+      console.log('Creating call with ID:', callId, 'Type:', type);
+      
       await createCall({
         channelId,
         callId,
         callType: type,
       });
+      
       setCallType(type);
-      setShowCallModal(true);
+      setCreatedCallId(callId);
+      
+      console.log('Call created successfully, showing widget for type:', type);
+      
+      if (type === 'video') {
+        console.log('Setting showVideoWidget to true');
+        setShowVideoWidget(true);
+      } else {
+        console.log('Setting showCallModal to true');
+        setShowCallModal(true);
+      }
+      
       toast.success(`${type === 'video' ? 'Video' : 'Audio'} call started!`);
     } catch (error) {
       console.error('Failed to start call:', error);
@@ -41,6 +58,15 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
   const generateCallId = () => {
     return `call_${channelId}_${Date.now()}`;
   };
+
+  // Debug logging
+  console.log('CallButton state:', { 
+    showCallModal, 
+    showVideoWidget, 
+    callType, 
+    isCreating, 
+    createdCallId 
+  });
 
   return (
     <>
@@ -90,6 +116,29 @@ export function CallButton({ channelId, channelName, className = "" }: CallButto
           channelId={channelId}
           channelName={channelName}
           participants={[]}
+        />
+      )}
+
+      {showVideoWidget && (
+        <VideoCallWidget
+          callId={createdCallId || `call_${channelId}_${Date.now()}`}
+          channelId={channelId}
+          channelName={channelName}
+          isOpen={showVideoWidget}
+          onClose={() => {
+            console.log('Closing video widget');
+            setShowVideoWidget(false);
+            setCreatedCallId(null);
+          }}
+          onJoin={() => {
+            console.log('Joining call from widget');
+            // Handle join logic if needed
+          }}
+          onLeave={() => {
+            console.log('Leaving call from widget');
+            setShowVideoWidget(false);
+            setCreatedCallId(null);
+          }}
         />
       )}
     </>
