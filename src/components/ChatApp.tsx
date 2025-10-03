@@ -7,6 +7,8 @@ import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { SearchBar } from "./SearchBar";
 import { ProfileModal } from "./ProfileModal";
+import { CallButton } from "./CallButton";
+import { CallNotification } from "./CallNotification";
 import { SignOutButton } from "../SignOutButton";
 
 export function ChatApp() {
@@ -14,9 +16,22 @@ export function ChatApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<{
+    callId: string;
+    channelId: Id<"channels">;
+    channelName: string;
+    callerName: string;
+  } | null>(null);
   const channels = useQuery(api.channels.list) || [];
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const markChannelAsRead = useMutation(api.readReceipts.markChannelAsRead);
+  
+  // Call-related queries
+  const activeCall = useQuery(
+    api.calls.getActiveCall,
+    selectedChannelId ? { channelId: selectedChannelId } : "skip"
+  );
+  const currentUser = useQuery(api.auth.loggedInUser);
 
   // Auto-select first channel
   useEffect(() => {
@@ -72,6 +87,13 @@ export function ChatApp() {
               channelId={selectedChannelId}
             />
           </div>
+          {selectedChannelId && (
+            <CallButton 
+              channelId={selectedChannelId}
+              channelName={selectedChannel?.name || ""}
+              className="hidden sm:flex"
+            />
+          )}
           <button
             onClick={() => setShowProfile(true)}
             className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
@@ -85,11 +107,22 @@ export function ChatApp() {
 
       {/* Mobile Search Bar */}
       <div className="sm:hidden px-2 py-2 bg-gray-50 border-b border-gray-200">
-        <SearchBar 
-          value={searchQuery} 
-          onChange={setSearchQuery}
-          channelId={selectedChannelId}
-        />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <SearchBar 
+              value={searchQuery} 
+              onChange={setSearchQuery}
+              channelId={selectedChannelId}
+            />
+          </div>
+          {selectedChannelId && (
+            <CallButton 
+              channelId={selectedChannelId}
+              channelName={selectedChannel?.name || ""}
+              className="flex-shrink-0"
+            />
+          )}
+        </div>
       </div>
 
       {/* Main Content */}
@@ -158,6 +191,42 @@ export function ChatApp() {
       {/* Profile Modal */}
       {showProfile && (
         <ProfileModal onClose={() => setShowProfile(false)} />
+      )}
+
+      {/* Incoming Call Notification */}
+      {incomingCall && (
+        <CallNotification
+          callId={incomingCall.callId}
+          channelId={incomingCall.channelId}
+          channelName={incomingCall.channelName}
+          callerName={incomingCall.callerName}
+          onAccept={() => {
+            // Handle call acceptance
+            setIncomingCall(null);
+          }}
+          onDecline={() => {
+            // Handle call decline
+            setIncomingCall(null);
+          }}
+        />
+      )}
+
+      {/* Active Call Indicator */}
+      {activeCall && (
+        <div className="fixed bottom-4 right-4 z-30 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium">
+            Call active in #{selectedChannel?.name} ({activeCall.participantCount} participants)
+          </span>
+          <button
+            onClick={() => {
+              // Handle joining active call
+            }}
+            className="ml-2 px-2 py-1 bg-green-700 hover:bg-green-800 rounded text-xs transition-colors"
+          >
+            Join
+          </button>
+        </div>
       )}
     </div>
   );
